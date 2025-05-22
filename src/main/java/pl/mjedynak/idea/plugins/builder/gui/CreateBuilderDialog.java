@@ -50,8 +50,7 @@ public class CreateBuilderDialog extends DialogWrapper {
     static final String RECENTS_KEY = "CreateBuilderDialog.RecentsKey";
     private static final int WIDTH = 40;
 
-    private static BuilderGeneratorSettingsState defaultStates = BuilderGeneratorSettingsState.getInstance();
-
+    private final BuilderGeneratorSettingsState settings;
     private final PsiHelper psiHelper;
     private final GuiHelper guiHelper;
     private final Project project;
@@ -82,8 +81,9 @@ public class CreateBuilderDialog extends DialogWrapper {
         this.project = project;
         this.sourceClass = sourceClass;
         this.existingBuilder = existingBuilder;
+        this.settings = BuilderGeneratorSettingsState.getInstance();
         targetClassNameField = new JTextField(targetClassName);
-        targetMethodPrefix = new JTextField(defaultStates.defaultMethodPrefix);
+        targetMethodPrefix = new JTextField(this.settings.defaultMethodPrefix);
         setPreferredSize(targetClassNameField);
         setPreferredSize(targetMethodPrefix);
 
@@ -208,7 +208,7 @@ public class CreateBuilderDialog extends DialogWrapper {
         gbConstraints.anchor = GridBagConstraints.WEST;
 
         innerBuilder = new JCheckBox();
-        innerBuilder.setSelected(defaultStates.isInnerBuilder);
+        innerBuilder.setSelected(this.settings.isInnerBuilder);
         innerBuilder.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -234,7 +234,7 @@ public class CreateBuilderDialog extends DialogWrapper {
         gbConstraints.fill = GridBagConstraints.HORIZONTAL;
         gbConstraints.anchor = GridBagConstraints.WEST;
         butMethod = new JCheckBox();
-        butMethod.setSelected(defaultStates.isButMethod);
+        butMethod.setSelected(this.settings.isButMethod);
         panel.add(butMethod, gbConstraints);
         // but method
 
@@ -254,7 +254,7 @@ public class CreateBuilderDialog extends DialogWrapper {
         gbConstraints.fill = GridBagConstraints.HORIZONTAL;
         gbConstraints.anchor = GridBagConstraints.WEST;
         useSingleField = new JCheckBox();
-        useSingleField.setSelected(defaultStates.isUseSinglePrefix);
+        useSingleField.setSelected(this.settings.isUseSinglePrefix);
         panel.add(useSingleField, gbConstraints);
         // useSingleField
 
@@ -274,7 +274,7 @@ public class CreateBuilderDialog extends DialogWrapper {
         gbConstraints.fill = GridBagConstraints.HORIZONTAL;
         gbConstraints.anchor = GridBagConstraints.WEST;
         copyConstructor = new JCheckBox();
-        copyConstructor.setSelected(defaultStates.isAddCopyConstructor);
+        copyConstructor.setSelected(this.settings.isAddCopyConstructor);
         panel.add(copyConstructor, gbConstraints);
         // copy constructor
 
