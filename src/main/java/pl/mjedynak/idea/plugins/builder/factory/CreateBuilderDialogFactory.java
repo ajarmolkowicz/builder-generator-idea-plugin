@@ -31,7 +31,7 @@ public class CreateBuilderDialogFactory {
                 project,
                 DIALOG_NAME,
                 sourceClass,
-                sourceClass.getName() + BUILDER_SUFFIX,
+                BUILDER_SUFFIX, // Changed to use only suffix as default name
                 srcPackage,
                 psiHelper,
                 guiHelper,

@@ -1,10 +1,9 @@
 package pl.mjedynak.idea.plugins.builder.psi;
 
-import static com.intellij.openapi.util.text.StringUtil.isVowel;
-
 import com.intellij.psi.JavaDirectoryService;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiClassType; // Added
 import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
@@ -15,7 +14,7 @@ import com.intellij.psi.PsiType;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
+// Added
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import pl.mjedynak.idea.plugins.builder.settings.CodeStyleSettings;
@@ -122,9 +121,9 @@ public class BuilderPsiClassBuilder {
     }
 
     public BuilderPsiClassBuilder withInitializingMethod() {
-        String prefix = isVowel(srcClassName.toLowerCase(Locale.ENGLISH).charAt(0)) ? AN_PREFIX : A_PREFIX;
+        String staticMethodName = StringUtils.uncapitalize(srcClassName);
         PsiMethod staticMethod = elementFactory.createMethodFromText(
-                "public static " + builderClassName + prefix + srcClassName + "() { return new " + builderClassName
+                "public static " + builderClassName + " " + staticMethodName + "() { return new " + builderClassName
                         + "(); }",
                 srcClass);
         builderClass.add(staticMethod);
@@ -132,17 +131,18 @@ public class BuilderPsiClassBuilder {
     }
 
     public BuilderPsiClassBuilder withSetMethods(String methodPrefix) {
+        List<PsiField> fieldsToProcess;
         if (useSingleField || isInnerBuilder(builderClass)) {
-            for (PsiField psiFieldForAssignment : allSelectedPsiFields) {
-                createAndAddMethod(psiFieldForAssignment, methodPrefix);
-            }
+            fieldsToProcess = allSelectedPsiFields;
         } else {
-            for (PsiField psiFieldForSetter : psiFieldsForSetters) {
-                createAndAddMethod(psiFieldForSetter, methodPrefix);
-            }
-            for (PsiField psiFieldForConstructor : psiFieldsForConstructor) {
-                createAndAddMethod(psiFieldForConstructor, methodPrefix);
-            }
+            fieldsToProcess = new java.util.ArrayList<>(psiFieldsForSetters);
+            fieldsToProcess.addAll(psiFieldsForConstructor);
+        }
+
+        for (PsiField psiField : fieldsToProcess) {
+            List<PsiMethod> methods =
+                    methodCreator.createSetterMethods(psiField, methodPrefix, srcClassFieldName, useSingleField);
+            methods.forEach(builderClass::add);
         }
         return this;
     }
@@ -163,10 +163,6 @@ public class BuilderPsiClassBuilder {
                 builderClass, srcClass, isInnerBuilder(builderClass), useSingleField);
         builderClass.add(method);
         return this;
-    }
-
-    private void createAndAddMethod(PsiField psiField, String methodPrefix) {
-        builderClass.add(methodCreator.createMethod(psiField, methodPrefix, srcClassFieldName, useSingleField));
     }
 
     public PsiClass build() {
@@ -298,6 +294,8 @@ public class BuilderPsiClassBuilder {
             return "0.0d";
         } else if (type.equals(PsiType.CHAR)) {
             return "'\\u0000'";
+        } else if (type instanceof PsiClassType && type.getCanonicalText().startsWith("java.util.Optional")) {
+            return "Optional.empty()";
         }
         return "null";
     }
