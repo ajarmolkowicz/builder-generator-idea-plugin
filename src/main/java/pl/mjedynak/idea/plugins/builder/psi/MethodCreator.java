@@ -1,8 +1,12 @@
 package pl.mjedynak.idea.plugins.builder.psi;
 
+import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiType;
+import java.util.ArrayList;
+import java.util.List;
 import pl.mjedynak.idea.plugins.builder.settings.CodeStyleSettings;
 
 public class MethodCreator {
@@ -17,24 +21,58 @@ public class MethodCreator {
         this.builderClassName = builderClassName;
     }
 
-    public PsiMethod createMethod(
-            PsiField psiField, String methodPrefix, String srcClassFieldName, boolean useSingleField) {
+    public List<PsiMethod> createSetterMethods(PsiField psiField, String methodPrefix, String srcClassFieldName) {
+        List<PsiMethod> methods = new ArrayList<>();
+        PsiType fieldType = psiField.getType();
+
+        if (fieldType instanceof PsiClassType && fieldType.getCanonicalText().startsWith("java.util.Optional")) {
+            PsiClassType classType = (PsiClassType) fieldType;
+            PsiType[] parameters = classType.getParameters();
+            if (parameters.length == 1) {
+                PsiType rawType = parameters[0];
+                methods.add(createSetterMethod(
+                        psiField,
+                        methodPrefix,
+                        srcClassFieldName,
+                        rawType,
+                        "Optional.of(" + getParameterName(psiField) + ")"));
+                methods.add(createSetterMethod(
+                        psiField, methodPrefix, srcClassFieldName, fieldType, getParameterName(psiField)));
+            } else {
+                methods.add(createSetterMethod(
+                        psiField, methodPrefix, srcClassFieldName, fieldType, getParameterName(psiField)));
+            }
+        } else {
+            methods.add(createSetterMethod(
+                    psiField, methodPrefix, srcClassFieldName, fieldType, getParameterName(psiField)));
+        }
+        return methods;
+    }
+
+    private PsiMethod createSetterMethod(
+            PsiField psiField,
+            String methodPrefix,
+            String srcClassFieldName,
+            PsiType parameterType,
+            String assignmentValue) {
         String fieldName = psiField.getName();
-        String fieldType = psiField.getType().getPresentableText();
+        String parameterTypeText = parameterType.getPresentableText();
         String fieldNamePrefix = codeStyleSettings.getFieldNamePrefix();
         String fieldNameWithoutPrefix = fieldName.replaceFirst(fieldNamePrefix, "");
-        String parameterNamePrefix = codeStyleSettings.getParameterNamePrefix();
-        String parameterName = parameterNamePrefix + fieldNameWithoutPrefix;
+        String parameterName = getParameterName(psiField);
         String methodName = methodNameCreator.createMethodName(methodPrefix, fieldNameWithoutPrefix);
-        String methodText;
-        if (useSingleField) {
-            String setterName = methodNameCreator.createMethodName("set", fieldNameWithoutPrefix);
-            methodText = "public " + builderClassName + " " + methodName + "(" + fieldType + " " + parameterName
-                    + ") { " + srcClassFieldName + "." + setterName + "(" + fieldName + "); return this; }";
-        } else {
-            methodText = "public " + builderClassName + " " + methodName + "(" + fieldType + " " + parameterName
-                    + ") { this." + fieldName + " = " + parameterName + "; return this; }";
-        }
+
+        String methodBodyAssignment = "this." + fieldName + " = " + assignmentValue + ";";
+
+        String methodText = "public " + builderClassName + " " + methodName + "(" + parameterTypeText + " "
+                + parameterName + ") { " + methodBodyAssignment + " return this; }";
         return elementFactory.createMethodFromText(methodText, psiField);
+    }
+
+    private String getParameterName(PsiField psiField) {
+        String fieldNamePrefix = codeStyleSettings.getFieldNamePrefix();
+        String fieldNameWithoutPrefix = psiField.getName().replaceFirst(fieldNamePrefix, "");
+        String parameterNamePrefix = codeStyleSettings.getParameterNamePrefix();
+        return parameterNamePrefix + fieldNameWithoutPrefix;
     }
 }

@@ -31,7 +31,7 @@ public class CreateBuilderDialogFactory {
                 project,
                 DIALOG_NAME,
                 sourceClass,
-                sourceClass.getName() + BUILDER_SUFFIX,
+                BUILDER_SUFFIX,
                 srcPackage,
                 psiHelper,
                 guiHelper,

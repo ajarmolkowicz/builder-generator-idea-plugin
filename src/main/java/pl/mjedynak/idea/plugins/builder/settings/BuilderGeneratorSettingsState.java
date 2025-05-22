@@ -16,10 +16,8 @@ import org.jetbrains.annotations.Nullable;
 @State(name = "org.intellij.sdk.settings.AppSettingsState", storages = @Storage("SdkSettingsPlugin.xml"))
 public class BuilderGeneratorSettingsState implements PersistentStateComponent<BuilderGeneratorSettingsState> {
 
-    public String defaultMethodPrefix = "with";
-    public boolean isInnerBuilder = false;
-    public boolean isButMethod = false;
-    public boolean isUseSinglePrefix = false;
+    public String defaultMethodPrefix = "";
+    public boolean isInnerBuilder = true;
     public boolean isAddCopyConstructor = false;
 
     public BuilderGeneratorSettingsState() {}

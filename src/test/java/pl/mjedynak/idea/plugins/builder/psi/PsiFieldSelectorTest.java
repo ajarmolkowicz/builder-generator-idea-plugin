@@ -9,6 +9,7 @@ import static org.mockito.Mockito.mock;
 import com.intellij.codeInsight.generation.PsiElementClassMember;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiField;
+import com.intellij.psi.PsiModifier;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,72 +43,51 @@ public class PsiFieldSelectorTest {
         PsiField[] fieldsArray = new PsiField[1];
         fieldsArray[0] = psiField;
         given(psiClass.getAllFields()).willReturn(fieldsArray);
+        given(psiField.hasModifierProperty(PsiModifier.STATIC)).willReturn(false);
         given(psiElementClassMemberFactory.createPsiElementClassMember(any(PsiField.class)))
                 .willReturn(mock(PsiElementClassMember.class));
     }
 
     @Test
     void shouldSelectFieldIfVerifierAcceptsItAsSetInSetter() {
-        doTest(false, true, false, false, false, false, 1);
+        doTest(false, true, false, 1);
     }
 
     @Test
     void shouldSelectFieldIfVerifierAcceptsItAsSetInConstructor() {
-        doTest(true, false, false, false, false, false, 1);
+        doTest(true, false, false, 1);
     }
 
     @Test
-    void shouldNotSelectFieldIfVerifierDoesNotAcceptsItAsSetInConstructorOrInSetter() {
-        doTest(false, false, true, false, false, false, 0);
+    void shouldSelectFieldEvenIfVerifierDoesNotAcceptsItAsSetInConstructorOrInSetter() {
+        doTest(false, false, true, 1);
     }
 
     @Test
     void shouldSelectAllFieldsIfInnerBuilder() {
-        doTest(false, false, false, true, false, false, 1);
+        doTest(false, false, false, 1);
     }
 
     @Test
     void shouldNeverSelectSerialVersionUIDField() {
         given(psiField.getName()).willReturn("serialVersionUID");
-        doTest(true, true, true, false, false, false, 0);
+        doTest(true, true, true, 0);
     }
 
     @Test
-    void shouldSelectFieldIfUseSingleFieldAndHasSetter() {
-        doTest(false, true, false, false, true, false, 1);
+    void shouldNeverSelectStaticField() {
+        given(psiField.hasModifierProperty(PsiModifier.STATIC)).willReturn(true);
+        doTest(true, true, true, 0);
     }
 
-    @Test
-    void shouldNotSelectFieldIfUseSingleFieldAndHasNoSetter() {
-        doTest(true, false, true, false, true, false, 0);
-    }
-
-    @Test
-    void shouldSelectFieldIfUseSingleFieldAndButMethodAndHasSetterAndGetter() {
-        doTest(false, true, true, false, true, true, 1);
-    }
-
-    @Test
-    void shouldNotSelectFieldIfUseSingleFieldAndButMethodAndHasSetterAndNoGetter() {
-        doTest(true, true, false, false, true, true, 0);
-    }
-
-    private void doTest(
-            boolean isSetInConstructor,
-            boolean isSetInSetter,
-            boolean hasGetter,
-            boolean isInnerBuilder,
-            boolean useSingleField,
-            boolean hasButMethod,
-            int size) {
+    private void doTest(boolean isSetInConstructor, boolean isSetInSetter, boolean hasGetter, int size) {
         // given
         given(psiFieldVerifier.isSetInConstructor(psiField, psiClass)).willReturn(isSetInConstructor);
         given(psiFieldVerifier.isSetInSetterMethod(psiField, psiClass)).willReturn(isSetInSetter);
         given(psiFieldVerifier.hasGetterMethod(psiField, psiClass)).willReturn(hasGetter);
 
         // when
-        List<PsiElementClassMember<?>> result =
-                psiFieldSelector.selectFieldsToIncludeInBuilder(psiClass, isInnerBuilder, useSingleField, hasButMethod);
+        List<PsiElementClassMember<?>> result = psiFieldSelector.selectFieldsToIncludeInBuilder(psiClass);
 
         // then
         assertThat(result).hasSize(size);

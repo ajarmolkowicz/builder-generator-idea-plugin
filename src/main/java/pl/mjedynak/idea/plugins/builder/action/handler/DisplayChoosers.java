@@ -51,10 +51,7 @@ public class DisplayChoosers {
             String className = createBuilderDialog.getClassName();
             String methodPrefix = createBuilderDialog.getMethodPrefix();
             boolean innerBuilder = createBuilderDialog.isInnerBuilder();
-            boolean useSingleField = createBuilderDialog.useSingleField();
-            boolean hasButMethod = createBuilderDialog.hasButMethod();
-            List<PsiElementClassMember<?>> fieldsToDisplay =
-                    getFieldsToIncludeInBuilder(psiClassFromEditor, innerBuilder, useSingleField, hasButMethod);
+            List<PsiElementClassMember<?>> fieldsToDisplay = getFieldsToIncludeInBuilder(psiClassFromEditor);
             com.intellij.ide.util.MemberChooser<PsiElementClassMember<?>> memberChooserDialog =
                     memberChooserDialogFactory.getMemberChooserDialog(fieldsToDisplay, project);
             memberChooserDialog.show();
@@ -87,8 +84,6 @@ public class DisplayChoosers {
                     psiClassFromEditor,
                     methodPrefix,
                     createBuilderDialog.isInnerBuilder(),
-                    createBuilderDialog.hasButMethod(),
-                    createBuilderDialog.useSingleField(),
                     createBuilderDialog.hasAddCopyConstructor());
             builderWriter.writeBuilder(context, existingBuilder);
         }
@@ -103,9 +98,8 @@ public class DisplayChoosers {
         return dialog;
     }
 
-    private List<PsiElementClassMember<?>> getFieldsToIncludeInBuilder(
-            PsiClass clazz, boolean innerBuilder, boolean useSingleField, boolean hasButMethod) {
-        return psiFieldSelector.selectFieldsToIncludeInBuilder(clazz, innerBuilder, useSingleField, hasButMethod);
+    private List<PsiElementClassMember<?>> getFieldsToIncludeInBuilder(PsiClass clazz) {
+        return psiFieldSelector.selectFieldsToIncludeInBuilder(clazz);
     }
 
     public void setPsiClassFromEditor(PsiClass psiClassFromEditor) {

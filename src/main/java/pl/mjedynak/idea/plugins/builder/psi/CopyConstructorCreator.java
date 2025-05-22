@@ -17,8 +17,7 @@ public class CopyConstructorCreator {
         this.elementFactory = elementFactory;
     }
 
-    public PsiMethod copyConstructor(
-            PsiClass builderClass, PsiClass srcClass, boolean isInnerBuilder, boolean useSingleField) {
+    public PsiMethod copyConstructor(PsiClass builderClass, PsiClass srcClass, boolean isInnerBuilder) {
         PsiField[] fields = builderClass.getAllFields();
         StringBuilder text = new StringBuilder("public "
                 + builderClass.getNameIdentifier().getText() + "(" + srcClass.getQualifiedName() + " other) { ");
@@ -29,19 +28,11 @@ public class CopyConstructorCreator {
             if (srcClass.isRecord()) {
                 text.append(".").append(field.getName()).append("();");
             } else if (isInnerBuilder) {
-                if (useSingleField) {
-                    text.append(";");
-                } else {
-                    text.append(".").append(field.getName()).append(";");
-                }
+                text.append(".").append(field.getName()).append(";");
             } else {
-                if (useSingleField) {
-                    text.append(";");
-                } else {
-                    text.append(".")
-                            .append(findFieldGetter(srcClass, field).getName())
-                            .append("();");
-                }
+                text.append(".")
+                        .append(findFieldGetter(srcClass, field).getName())
+                        .append("();");
             }
         }
         text.append(" }");

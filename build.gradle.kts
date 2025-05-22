@@ -16,6 +16,7 @@ dependencies {
     testImplementation("org.mockito:mockito-junit-jupiter:5.10.0")
     testImplementation("org.assertj:assertj-core:3.25.3")
     testImplementation("org.springframework:spring-test:6.1.4")
+    implementation("org.apache.commons:commons-text:1.12.0")
 }
 
 intellij {

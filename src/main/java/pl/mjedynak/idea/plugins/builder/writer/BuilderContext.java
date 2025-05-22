@@ -15,8 +15,6 @@ public class BuilderContext {
     private final PsiClass psiClassFromEditor;
     private final String methodPrefix;
     private final boolean isInner;
-    private final boolean hasButMethod;
-    private final boolean useSingleField;
     private final boolean addCopyConstructor;
 
     public BuilderContext(
@@ -27,8 +25,6 @@ public class BuilderContext {
             PsiClass psiClassFromEditor,
             String methodPrefix,
             boolean isInner,
-            boolean hasButMethod,
-            boolean useSingleField,
             boolean addCopyConstructor) {
         this.project = project;
         this.psiFieldsForBuilder = psiFieldsForBuilder;
@@ -37,8 +33,6 @@ public class BuilderContext {
         this.psiClassFromEditor = psiClassFromEditor;
         this.methodPrefix = methodPrefix;
         this.isInner = isInner;
-        this.hasButMethod = hasButMethod;
-        this.useSingleField = useSingleField;
         this.addCopyConstructor = addCopyConstructor;
     }
 
@@ -68,14 +62,6 @@ public class BuilderContext {
 
     boolean isInner() {
         return isInner;
-    }
-
-    boolean hasButMethod() {
-        return hasButMethod;
-    }
-
-    public boolean useSingleField() {
-        return useSingleField;
     }
 
     public boolean hasAddCopyConstructor() {

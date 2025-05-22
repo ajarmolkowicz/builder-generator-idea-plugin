@@ -13,7 +13,6 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiDirectory;
-import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiPackage;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.IdeBorderFactory;
@@ -50,8 +49,6 @@ public class CreateBuilderDialog extends DialogWrapper {
     static final String RECENTS_KEY = "CreateBuilderDialog.RecentsKey";
     private static final int WIDTH = 40;
 
-    private static BuilderGeneratorSettingsState defaultStates = BuilderGeneratorSettingsState.getInstance();
-
     private final PsiHelper psiHelper;
     private final GuiHelper guiHelper;
     private final Project project;
@@ -62,8 +59,6 @@ public class CreateBuilderDialog extends DialogWrapper {
     private final PsiClass existingBuilder;
     private PsiDirectory targetDirectory;
     private JCheckBox innerBuilder;
-    private JCheckBox butMethod;
-    private JCheckBox useSingleField;
     private JCheckBox copyConstructor;
 
     public CreateBuilderDialog(
@@ -83,6 +78,7 @@ public class CreateBuilderDialog extends DialogWrapper {
         this.sourceClass = sourceClass;
         this.existingBuilder = existingBuilder;
         targetClassNameField = new JTextField(targetClassName);
+        BuilderGeneratorSettingsState defaultStates = BuilderGeneratorSettingsState.getInstance();
         targetMethodPrefix = new JTextField(defaultStates.defaultMethodPrefix);
         setPreferredSize(targetClassNameField);
         setPreferredSize(targetMethodPrefix);
@@ -118,6 +114,7 @@ public class CreateBuilderDialog extends DialogWrapper {
     protected JComponent createCenterPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbConstraints = new GridBagConstraints();
+        BuilderGeneratorSettingsState defaultStates = BuilderGeneratorSettingsState.getInstance();
 
         panel.setBorder(IdeBorderFactory.createBorder());
 
@@ -218,51 +215,11 @@ public class CreateBuilderDialog extends DialogWrapper {
         panel.add(innerBuilder, gbConstraints);
         // Inner builder
 
-        // but method
-        gbConstraints.insets = new Insets(4, 8, 4, 8);
-        gbConstraints.gridx = 0;
-        gbConstraints.weightx = 0;
-        gbConstraints.gridy = 5;
-        gbConstraints.fill = GridBagConstraints.HORIZONTAL;
-        gbConstraints.anchor = GridBagConstraints.WEST;
-        panel.add(new JLabel("'but' method"), gbConstraints);
-
-        gbConstraints.insets = new Insets(4, 8, 4, 8);
-        gbConstraints.gridx = 1;
-        gbConstraints.weightx = 1;
-        gbConstraints.gridwidth = 1;
-        gbConstraints.fill = GridBagConstraints.HORIZONTAL;
-        gbConstraints.anchor = GridBagConstraints.WEST;
-        butMethod = new JCheckBox();
-        butMethod.setSelected(defaultStates.isButMethod);
-        panel.add(butMethod, gbConstraints);
-        // but method
-
-        // useSingleField
-        gbConstraints.insets = new Insets(4, 8, 4, 8);
-        gbConstraints.gridx = 0;
-        gbConstraints.weightx = 0;
-        gbConstraints.gridy = 6;
-        gbConstraints.fill = GridBagConstraints.HORIZONTAL;
-        gbConstraints.anchor = GridBagConstraints.WEST;
-        panel.add(new JLabel("Use single field"), gbConstraints);
-
-        gbConstraints.insets = new Insets(4, 8, 4, 8);
-        gbConstraints.gridx = 1;
-        gbConstraints.weightx = 1;
-        gbConstraints.gridwidth = 1;
-        gbConstraints.fill = GridBagConstraints.HORIZONTAL;
-        gbConstraints.anchor = GridBagConstraints.WEST;
-        useSingleField = new JCheckBox();
-        useSingleField.setSelected(defaultStates.isUseSinglePrefix);
-        panel.add(useSingleField, gbConstraints);
-        // useSingleField
-
         // copy constructor
         gbConstraints.insets = new Insets(4, 8, 4, 8);
         gbConstraints.gridx = 0;
         gbConstraints.weightx = 0;
-        gbConstraints.gridy = 7;
+        gbConstraints.gridy = 5;
         gbConstraints.fill = GridBagConstraints.HORIZONTAL;
         gbConstraints.anchor = GridBagConstraints.WEST;
         panel.add(new JLabel("Add copy constructor"), gbConstraints);
@@ -300,27 +257,10 @@ public class CreateBuilderDialog extends DialogWrapper {
             throw new IllegalStateException("Cannot find module for class " + sourceClass.getName());
         }
         try {
-            checkIfSourceClassHasZeroArgsConstructorWhenUsingSingleField();
             checkIfClassCanBeCreated(module);
             callSuper();
         } catch (IncorrectOperationException e) {
             guiHelper.showMessageDialog(project, e.getMessage(), CommonBundle.getErrorTitle(), Messages.getErrorIcon());
-        }
-    }
-
-    void checkIfSourceClassHasZeroArgsConstructorWhenUsingSingleField() {
-        if (useSingleField()) {
-            PsiMethod[] constructors = sourceClass.getConstructors();
-            if (constructors.length == 0) {
-                return;
-            }
-            for (PsiMethod constructor : constructors) {
-                if (constructor.getParameterList().getParametersCount() == 0) {
-                    return;
-                }
-            }
-            throw new IncorrectOperationException(
-                    String.format("%s must define a default constructor", sourceClass.getName()));
         }
     }
 
@@ -365,14 +305,6 @@ public class CreateBuilderDialog extends DialogWrapper {
 
     public boolean isInnerBuilder() {
         return innerBuilder.isSelected();
-    }
-
-    public boolean hasButMethod() {
-        return butMethod.isSelected();
-    }
-
-    public boolean useSingleField() {
-        return useSingleField.isSelected();
     }
 
     public boolean hasAddCopyConstructor() {

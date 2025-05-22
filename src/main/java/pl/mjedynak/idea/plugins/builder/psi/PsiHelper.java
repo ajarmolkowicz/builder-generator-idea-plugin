@@ -14,11 +14,12 @@ import com.intellij.pom.Navigatable;
 import com.intellij.psi.JavaDirectoryService;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiClassOwner;
 import com.intellij.psi.PsiDirectory;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiPackage;
 import com.intellij.psi.search.PsiShortNamesCache;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiUtilBase;
 import com.intellij.refactoring.util.RefactoringMessageUtil;
 
@@ -29,15 +30,18 @@ public class PsiHelper {
     }
 
     public PsiClass getPsiClassFromEditor(Editor editor, Project project) {
-        PsiClass psiClass = null;
         PsiFile psiFile = getPsiFile(editor, project);
-        if (psiFile instanceof PsiClassOwner) {
-            PsiClass[] classes = ((PsiClassOwner) psiFile).getClasses();
-            if (classes.length == 1) {
-                psiClass = classes[0];
-            }
+        if (psiFile == null) {
+            return null;
         }
-        return psiClass;
+        int offset = editor.getCaretModel().getOffset();
+        PsiElement element = psiFile.findElementAt(offset);
+        if (element == null && offset > 0) {
+            // If the element at caret is null (e.g. whitespace at the end of the file, or between tokens),
+            // try to get the element before the caret. This helps in cases where caret is at the end of a line.
+            element = psiFile.findElementAt(offset - 1);
+        }
+        return PsiTreeUtil.getParentOfType(element, PsiClass.class);
     }
 
     private PsiFile getPsiFile(Editor editor, Project project) {

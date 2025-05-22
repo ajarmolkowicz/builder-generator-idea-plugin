@@ -35,8 +35,6 @@ public class BuilderGeneratorSettingsConfigurable implements Configurable {
         BuilderGeneratorSettingsState settings = BuilderGeneratorSettingsState.getInstance();
         boolean modified = !mySettingsComponent.getDefaultMethodPrefixText().equals(settings.defaultMethodPrefix);
         modified |= mySettingsComponent.isInnerBuilder() != settings.isInnerBuilder;
-        modified |= mySettingsComponent.isButMethod() != settings.isButMethod;
-        modified |= mySettingsComponent.isUseSinglePrefix() != settings.isUseSinglePrefix;
         modified |= mySettingsComponent.isAddCopyConstructor() != settings.isAddCopyConstructor;
         return modified;
     }
@@ -46,8 +44,6 @@ public class BuilderGeneratorSettingsConfigurable implements Configurable {
         BuilderGeneratorSettingsState settings = BuilderGeneratorSettingsState.getInstance();
         settings.defaultMethodPrefix = mySettingsComponent.getDefaultMethodPrefixText();
         settings.isInnerBuilder = mySettingsComponent.isInnerBuilder();
-        settings.isButMethod = mySettingsComponent.isButMethod();
-        settings.isUseSinglePrefix = mySettingsComponent.isUseSinglePrefix();
         settings.isAddCopyConstructor = mySettingsComponent.isAddCopyConstructor();
     }
 
@@ -56,8 +52,6 @@ public class BuilderGeneratorSettingsConfigurable implements Configurable {
         BuilderGeneratorSettingsState settings = BuilderGeneratorSettingsState.getInstance();
         mySettingsComponent.setDefaultMethodPrefixText(settings.defaultMethodPrefix);
         mySettingsComponent.setInnerBuilder(settings.isInnerBuilder);
-        mySettingsComponent.setButMethod(settings.isButMethod);
-        mySettingsComponent.setUseSinglePrefix(settings.isUseSinglePrefix);
         mySettingsComponent.setAddCopyConstructor(settings.isAddCopyConstructor);
     }
 

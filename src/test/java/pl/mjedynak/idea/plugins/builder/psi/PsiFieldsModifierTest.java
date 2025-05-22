@@ -2,16 +2,14 @@ package pl.mjedynak.idea.plugins.builder.psi;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiAnnotation;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiField;
-import com.intellij.psi.PsiModifier;
-import com.intellij.psi.PsiModifierList;
 import com.intellij.psi.PsiType;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,18 +50,15 @@ public class PsiFieldsModifierTest {
         given(psiFieldForSetters.getType()).willReturn(PsiType.INT);
         psiFieldsForSetters.add(psiFieldForSetters);
         PsiField copyPsiFieldForSetter = mock(PsiField.class);
-        PsiModifierList copyPsiFieldForSetterModifierList = mock(PsiModifierList.class);
-        given(copyPsiFieldForSetter.getModifierList()).willReturn(copyPsiFieldForSetterModifierList);
-        given(psiElementFactory.createField("setterField", PsiType.INT)).willReturn(copyPsiFieldForSetter);
+        given(psiElementFactory.createFieldFromText("private int setterField;", builderClass))
+                .willReturn(copyPsiFieldForSetter);
 
         PsiField psiFieldForConstructor = mock(PsiField.class);
         given(psiFieldForConstructor.getName()).willReturn("constructorField");
         given(psiFieldForConstructor.getType()).willReturn(PsiType.BOOLEAN);
         psiFieldsForConstructor.add(psiFieldForConstructor);
         PsiField copyPsiFieldForConstructor = mock(PsiField.class);
-        PsiModifierList copyPsiFieldForConstructorModifierList = mock(PsiModifierList.class);
-        given(copyPsiFieldForConstructor.getModifierList()).willReturn(copyPsiFieldForConstructorModifierList);
-        given(psiElementFactory.createField("constructorField", PsiType.BOOLEAN))
+        given(psiElementFactory.createFieldFromText("private boolean constructorField;", builderClass))
                 .willReturn(copyPsiFieldForConstructor);
 
         given(builderClass.getProject()).willReturn(project);
@@ -74,15 +69,8 @@ public class PsiFieldsModifierTest {
 
         // then
         verify(builderClass).add(copyPsiFieldForSetter);
-        verify(copyPsiFieldForSetterModifierList).setModifierProperty(PsiModifier.PRIVATE, true);
         verify(builderClass).add(copyPsiFieldForConstructor);
-        verify(copyPsiFieldForConstructorModifierList).setModifierProperty(PsiModifier.PRIVATE, true);
+        verify(builderClass, times(2)).getProject(); // Verify calls to getProject()
         verifyNoMoreInteractions(builderClass);
-    }
-
-    private PsiAnnotation[] createAnnotationArray(PsiAnnotation annotation) {
-        PsiAnnotation[] annotationArray = new PsiAnnotation[1];
-        annotationArray[0] = annotation;
-        return annotationArray;
     }
 }

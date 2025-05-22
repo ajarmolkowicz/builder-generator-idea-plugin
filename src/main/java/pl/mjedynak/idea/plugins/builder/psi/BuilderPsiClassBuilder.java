@@ -1,10 +1,9 @@
 package pl.mjedynak.idea.plugins.builder.psi;
 
-import static com.intellij.openapi.util.text.StringUtil.isVowel;
-
 import com.intellij.psi.JavaDirectoryService;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
@@ -15,7 +14,6 @@ import com.intellij.psi.PsiType;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import pl.mjedynak.idea.plugins.builder.settings.CodeStyleSettings;
@@ -33,7 +31,6 @@ public class BuilderPsiClassBuilder {
     private final PsiFieldsModifier psiFieldsModifier = new PsiFieldsModifier();
     private final PsiFieldVerifier psiFieldVerifier = new PsiFieldVerifier();
     private final CodeStyleSettings codeStyleSettings = new CodeStyleSettings();
-    private ButMethodCreator butMethodCreator;
     private CopyConstructorCreator copyConstructorCreator;
     private MethodCreator methodCreator;
 
@@ -50,7 +47,6 @@ public class BuilderPsiClassBuilder {
     private String srcClassName = null;
     private String srcClassFieldName = null;
 
-    private boolean useSingleField = false;
     private boolean isInline = false;
     private boolean copyConstructor = false;
 
@@ -82,21 +78,15 @@ public class BuilderPsiClassBuilder {
         psiFieldsForSetters = context.getPsiFieldsForBuilder().getFieldsForSetters();
         psiFieldsForConstructor = context.getPsiFieldsForBuilder().getFieldsForConstructor();
         allSelectedPsiFields = context.getPsiFieldsForBuilder().getAllSelectedFields();
-        useSingleField = context.useSingleField();
         bestConstructor = context.getPsiFieldsForBuilder().getBestConstructor();
         methodCreator = new MethodCreator(elementFactory, builderClassName);
-        butMethodCreator = new ButMethodCreator(elementFactory);
         copyConstructorCreator = new CopyConstructorCreator(elementFactory);
         isInline = allSelectedPsiFields.size() == psiFieldsForConstructor.size();
         copyConstructor = context.hasAddCopyConstructor();
     }
 
     public BuilderPsiClassBuilder withFields() {
-        if (useSingleField) {
-            String fieldText = "private " + srcClassName + " " + srcClassFieldName + ";";
-            PsiField singleField = elementFactory.createFieldFromText(fieldText, srcClass);
-            builderClass.add(singleField);
-        } else if (isInnerBuilder(builderClass)) {
+        if (isInnerBuilder(builderClass)) {
             psiFieldsModifier.modifyFieldsForInnerClass(allSelectedPsiFields, builderClass);
         } else {
             psiFieldsModifier.modifyFields(psiFieldsForSetters, psiFieldsForConstructor, builderClass);
@@ -105,13 +95,7 @@ public class BuilderPsiClassBuilder {
     }
 
     public BuilderPsiClassBuilder withConstructor() {
-        PsiMethod constructor;
-        if (useSingleField) {
-            constructor = elementFactory.createMethodFromText(
-                    builderClassName + "(){ " + srcClassFieldName + " = new " + srcClassName + "(); }", srcClass);
-        } else {
-            constructor = elementFactory.createConstructor();
-        }
+        PsiMethod constructor = elementFactory.createConstructor();
 
         constructor
                 .getModifierList()
@@ -122,9 +106,9 @@ public class BuilderPsiClassBuilder {
     }
 
     public BuilderPsiClassBuilder withInitializingMethod() {
-        String prefix = isVowel(srcClassName.toLowerCase(Locale.ENGLISH).charAt(0)) ? AN_PREFIX : A_PREFIX;
+        String staticMethodName = StringUtils.uncapitalize(srcClassName);
         PsiMethod staticMethod = elementFactory.createMethodFromText(
-                "public static " + builderClassName + prefix + srcClassName + "() { return new " + builderClassName
+                "public static " + builderClassName + " " + staticMethodName + "() { return new " + builderClassName
                         + "(); }",
                 srcClass);
         builderClass.add(staticMethod);
@@ -132,17 +116,17 @@ public class BuilderPsiClassBuilder {
     }
 
     public BuilderPsiClassBuilder withSetMethods(String methodPrefix) {
-        if (useSingleField || isInnerBuilder(builderClass)) {
-            for (PsiField psiFieldForAssignment : allSelectedPsiFields) {
-                createAndAddMethod(psiFieldForAssignment, methodPrefix);
-            }
+        List<PsiField> fieldsToProcess;
+        if (isInnerBuilder(builderClass)) {
+            fieldsToProcess = allSelectedPsiFields;
         } else {
-            for (PsiField psiFieldForSetter : psiFieldsForSetters) {
-                createAndAddMethod(psiFieldForSetter, methodPrefix);
-            }
-            for (PsiField psiFieldForConstructor : psiFieldsForConstructor) {
-                createAndAddMethod(psiFieldForConstructor, methodPrefix);
-            }
+            fieldsToProcess = new java.util.ArrayList<>(psiFieldsForSetters);
+            fieldsToProcess.addAll(psiFieldsForConstructor);
+        }
+
+        for (PsiField psiField : fieldsToProcess) {
+            List<PsiMethod> methods = methodCreator.createSetterMethods(psiField, methodPrefix, srcClassFieldName);
+            methods.forEach(builderClass::add);
         }
         return this;
     }
@@ -151,39 +135,19 @@ public class BuilderPsiClassBuilder {
         return aClass.hasModifierProperty(PsiModifier.STATIC);
     }
 
-    public BuilderPsiClassBuilder withButMethod() {
-        PsiMethod method =
-                butMethodCreator.butMethod(builderClassName, builderClass, srcClass, srcClassFieldName, useSingleField);
-        builderClass.add(method);
-        return this;
-    }
-
     public BuilderPsiClassBuilder withCopyConstructor() {
-        final PsiMethod method = copyConstructorCreator.copyConstructor(
-                builderClass, srcClass, isInnerBuilder(builderClass), useSingleField);
+        final PsiMethod method =
+                copyConstructorCreator.copyConstructor(builderClass, srcClass, isInnerBuilder(builderClass));
         builderClass.add(method);
         return this;
-    }
-
-    private void createAndAddMethod(PsiField psiField, String methodPrefix) {
-        builderClass.add(methodCreator.createMethod(psiField, methodPrefix, srcClassFieldName, useSingleField));
     }
 
     public PsiClass build() {
-        if (useSingleField) {
-            return buildUseSingleField();
-        } else if (isInline) {
+        if (isInline) {
             return buildIsInline();
         } else {
             return buildDefault();
         }
-    }
-
-    private PsiClass buildUseSingleField() {
-        String buildMethodText = "public " + srcClassName + " build() { " + "return " + srcClassFieldName + ";" + " }";
-        PsiMethod buildMethod = elementFactory.createMethodFromText(buildMethodText, srcClass);
-        builderClass.add(buildMethod);
-        return builderClass;
     }
 
     private PsiClass buildIsInline() {
@@ -298,6 +262,8 @@ public class BuilderPsiClassBuilder {
             return "0.0d";
         } else if (type.equals(PsiType.CHAR)) {
             return "'\\u0000'";
+        } else if (type instanceof PsiClassType && type.getCanonicalText().startsWith("java.util.Optional")) {
+            return "Optional.empty()";
         }
         return "null";
     }
